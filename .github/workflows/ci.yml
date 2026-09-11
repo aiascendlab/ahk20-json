@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The portable zip avoids the installer entirely: no GUI, no elevation,
+      # and the archive can be pinned by SHA-256.
+      - name: Get AutoHotkey v2 (portable)
+        shell: pwsh
+        run: |
+          $ver = "2.0.27"
+          $sha = "f72cad4b98a7b5aa050b35d6deaa0b0e3949929b2aaff7d0d69858f1f380b3ef"
+          $zip = Join-Path $env:RUNNER_TEMP "AutoHotkey_$ver.zip"
+          $dir = Join-Path $env:RUNNER_TEMP "ahk"
+          Invoke-WebRequest -Uri "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$ver/AutoHotkey_$ver.zip" -OutFile $zip
+          $actual = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $sha) { throw "SHA256 mismatch for AutoHotkey_$ver.zip: $actual" }
+          Expand-Archive -LiteralPath $zip -DestinationPath $dir
+          "AHK20_JSON_AHK=$(Join-Path $dir 'AutoHotkey64.exe')" >> $env:GITHUB_ENV
+
+      - name: Run checks
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\test\check.ps1
+
+  actions-audit:
+    name: Audit workflows (zizmor)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Plain CLI output instead of SARIF upload, so the job also works on a
+      # private repository without GitHub Advanced Security. Findings fail the job.
+      - uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          advanced-security: false

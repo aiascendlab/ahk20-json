@@ -1,0 +1,10 @@
+Third-party notices
+===================
+
+JSONTestSuite parsing samples
+-----------------------------
+The 318 files under test/JSONTestSuite/TestSamples/ are copied from
+nst/JSONTestSuite (https://github.com/nst/JSONTestSuite).
+
+Copyright (c) 2016 Nicolas Seriot
+License: MIT (see test/JSONTestSuite/LICENSE)

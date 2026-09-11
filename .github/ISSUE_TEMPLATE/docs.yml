@@ -1,0 +1,19 @@
+name: Documentation
+description: Report a docs problem or gap
+title: "[Docs]: "
+labels: ["type/docs", "status/triage"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Page or file
+      placeholder: docs/api.md, README.md, …
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: What is wrong or missing?
+    validations:
+      required: true
